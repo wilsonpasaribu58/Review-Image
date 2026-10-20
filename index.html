@@ -1,0 +1,1045 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Review Bench</title>
+<style>
+  :root{
+    --bench:#ffffff; --panel:#ffffff; --rail:#ffffff; --lightbox:#f1f3f4;
+    --ink:#1b1f21; --muted:#59646a; --dim:#8b959a; --line:#e0e5e8;
+    --accent:#1a7ba6; --warn:#a9701a; --bad:#c03a34; --good:#2d7a4d;
+    --sunk:#f6f8f9; --edge:#ccd4d8;
+    --sans:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
+    --col:428px;
+  }
+  :root{color-scheme:light}
+  html{background:#fff}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bench);color:var(--ink);font-family:var(--sans);
+       font-size:14px;line-height:1.45;-webkit-font-smoothing:antialiased;padding-bottom:78px}
+  button,input,textarea,select{font:inherit;color:inherit}
+  img{max-width:100%}
+  .lbl{font-family:var(--mono);font-size:10px;letter-spacing:.13em;text-transform:uppercase;color:var(--dim)}
+  .btn{background:var(--sunk);border:1px solid var(--line);border-radius:4px;padding:7px 12px;
+       cursor:pointer;font-size:12.5px;white-space:nowrap}
+  .btn:hover{background:#eef1f3;border-color:var(--edge)}
+  .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+  .btn.primary:hover{background:#15678b;border-color:#15678b}
+  .btn.ghost{background:transparent}
+  .btn.mini{padding:3px 8px;font-size:11px}
+  .btn[disabled]{opacity:.4;cursor:not-allowed}
+  :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  textarea,select{width:100%;background:#fff;border:1px solid var(--line);border-radius:4px;
+           padding:8px;resize:vertical;font-size:13px}
+  select{width:auto;padding:6px 8px;font-size:12.5px;cursor:pointer}
+  textarea::placeholder{color:var(--dim)}
+
+  header{position:sticky;top:0;z-index:30;box-shadow:0 1px 0 rgba(20,30,35,.04);display:flex;align-items:center;gap:12px;flex-wrap:wrap;
+         padding:10px 18px;background:var(--rail);border-bottom:1px solid var(--line)}
+  .brand{font-family:var(--mono);font-size:12px;letter-spacing:.22em;text-transform:uppercase}
+  .brand b{color:var(--accent);font-weight:600}
+  .count{font-family:var(--mono);font-size:11px;color:var(--dim)}
+  .count.ok{color:var(--good)} .count.bad{color:var(--warn)}
+  .spacer{flex:1;min-width:10px}
+  .hbtns{display:flex;gap:8px;flex-wrap:wrap}
+
+  .task{margin:18px;background:var(--panel);border:1px solid var(--line);border-radius:6px;overflow:hidden;box-shadow:0 1px 2px rgba(20,30,35,.05)}
+  .taskhead{display:flex;align-items:center;gap:12px;padding:9px 14px;border-bottom:1px solid var(--line);cursor:pointer}
+  .taskhead .peek{flex:1;font-size:12.5px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .caret{font-family:var(--mono);font-size:11px;color:var(--dim)}
+  .taskbody{padding:16px}
+  .task.folded .taskbody{display:none}
+  .srcslot{background:var(--lightbox);border:1px dashed var(--edge);border-radius:5px;min-height:190px;
+           display:flex;align-items:center;justify-content:center;cursor:pointer;overflow:hidden;position:relative}
+  .srcslot.hot{border-color:var(--accent);border-style:solid}
+  .srcslot img{max-height:340px;display:block}
+  .srcslot .ph{color:var(--muted);text-align:center;padding:34px 18px;font-size:13px;line-height:1.6}
+  .srcslot .ph small{color:var(--dim);font-size:11.5px}
+  .srcfoot{display:flex;align-items:center;gap:10px;margin-top:8px;min-height:22px}
+  .fname{font-family:var(--mono);font-size:11px;color:var(--muted);overflow:hidden;
+         text-overflow:ellipsis;white-space:nowrap;flex:1}
+  .fields{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:16px}
+  .field{display:flex;flex-direction:column;gap:5px}
+  #prompt{min-height:96px}
+  #rubric{min-height:96px;font-family:var(--mono);font-size:11.5px;line-height:1.5}
+  @media (max-width:820px){.fields{grid-template-columns:1fr}}
+
+  .striphead{display:flex;align-items:center;gap:12px;padding:0 18px 8px;flex-wrap:wrap}
+  .strip{display:flex;gap:14px;overflow-x:auto;padding:0 18px 20px;align-items:flex-start}
+  .strip.hot{outline:2px dashed var(--accent);outline-offset:-8px}
+  .col{width:var(--col);flex:none;background:var(--panel);border:1px solid var(--line);
+       border-radius:6px;overflow:hidden;box-shadow:0 1px 2px rgba(20,30,35,.05)}
+  .colhead{display:flex;align-items:center;gap:8px;padding:8px 10px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+  .letter{font-family:var(--mono);font-size:12px;font-weight:600;background:#eaeef0;
+          border-radius:3px;padding:2px 8px;letter-spacing:.06em}
+  .chips{display:flex;gap:5px;flex-wrap:wrap;flex:1;align-items:center}
+  .chip{font-family:var(--mono);font-size:10.5px;background:var(--sunk);border:1px solid var(--line);
+        border-radius:11px;padding:2px 8px;color:var(--muted);white-space:nowrap}
+  .chip.set{color:var(--ink);border-color:var(--edge)}
+  .chip.ov{color:var(--accent);border-color:#a9cfe0}
+  .badge{font-family:var(--mono);font-size:10px;color:var(--warn);letter-spacing:.05em;white-space:nowrap}
+  .badge.done{color:var(--good)}
+  .thumbs{display:flex;gap:6px;padding:8px 10px;overflow-x:auto;align-items:center}
+  .thumbs button{padding:0;border:1px solid var(--line);border-radius:3px;background:#fff;
+                 cursor:pointer;flex:none;overflow:hidden;line-height:0}
+  .thumbs img{width:44px;height:44px;object-fit:cover;display:block}
+  .thumbs button.on{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+  .thumbs .addimg{width:44px;height:44px;color:var(--dim);font-size:17px;line-height:42px;text-align:center}
+  .colimg{background:var(--lightbox);height:262px;display:flex;align-items:center;justify-content:center;
+          cursor:zoom-in;position:relative}
+  .colimg img{max-height:100%;display:block}
+  .colimg .empty{color:var(--muted);font-size:12.5px;padding:0 16px;text-align:center}
+  .colimg .n{position:absolute;right:7px;bottom:7px;font-family:var(--mono);font-size:10px;
+             background:rgba(255,255,255,.9);border:1px solid var(--line);color:var(--muted);padding:1px 6px;border-radius:3px}
+
+  .score{padding:14px 14px 4px}
+  .scorehead{font-size:15.5px;font-weight:600}
+  .scoresub{font-size:12px;color:var(--dim);margin:3px 0 18px}
+  .ax{margin-bottom:20px;padding-bottom:18px;border-bottom:1px solid var(--line)}
+  .ax-overall{border-bottom:none;padding-bottom:4px}
+  .axname{font-size:14.5px;font-weight:600;margin-bottom:6px}
+  .axdef{font-size:12.5px;color:var(--muted);line-height:1.5;margin-bottom:13px}
+  .qlbl{display:block;font-size:12.5px;margin-bottom:7px}
+  .req{color:var(--warn)}
+  .segs{display:flex;border:1px solid var(--line);border-radius:5px;overflow:hidden;background:#fff}
+  .segs button{flex:1;background:transparent;border:none;border-right:1px solid var(--line);
+    padding:9px 0;font-family:var(--mono);font-size:13.5px;color:var(--muted);cursor:pointer}
+  .segs button:last-child{border-right:none}
+  .segs button:hover{background:#eef2f4;color:var(--ink)}
+  .segs button.on{background:var(--accent);color:#fff;font-weight:600}
+  .anchor{font-size:11.5px;color:var(--muted);line-height:1.45;margin-top:8px;min-height:17px}
+  .anchor b{color:var(--ink);font-family:var(--mono);font-weight:600}
+  .helper{font-size:11px;color:var(--dim);line-height:1.4;margin-top:6px}
+  .jbox{min-height:104px;font-size:12.5px;line-height:1.45}
+  .avg{font-family:var(--mono);font-size:11px;color:var(--dim)}
+  .colfoot{padding:10px 12px 14px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:8px}
+  .draftout{font-size:12.5px;color:var(--ink);background:var(--sunk);border:1px solid var(--line);
+            border-radius:4px;padding:9px;white-space:pre-wrap;max-height:220px;overflow:auto}
+  .addcol{width:186px;flex:none;min-height:190px;border:1px dashed var(--edge);border-radius:6px;
+          background:transparent;color:var(--muted);cursor:pointer;font-size:13px;line-height:1.6;padding:20px}
+  .addcol:hover{border-color:var(--accent);color:var(--ink)}
+
+  footer{position:fixed;left:0;right:0;bottom:0;z-index:30;background:var(--rail);
+         border-top:1px solid var(--line);padding:8px 18px 11px;box-shadow:0 -1px 3px rgba(20,30,35,.05)}
+  .ftop{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:5px}
+  .verdict{font-family:var(--mono);font-size:11px;letter-spacing:.05em}
+  .verdict.ok{color:var(--good)} .verdict.warn{color:var(--warn)} .verdict.bad{color:var(--bad)}
+  .ladder{position:relative;height:40px}
+  .ladder .axis{position:absolute;left:0;right:0;top:26px;height:1px;background:var(--line)}
+  .ladder .tick{position:absolute;top:29px;transform:translateX(-50%);font-family:var(--mono);font-size:9px;color:var(--dim)}
+  .ladder .chipL{position:absolute;top:1px;transform:translateX(-50%);font-family:var(--mono);font-size:11px;
+       background:var(--sunk);border:1px solid var(--line);border-radius:3px;padding:2px 6px;cursor:pointer;white-space:nowrap}
+  .ladder .chipL.tie{border-color:var(--warn);color:var(--warn)}
+  .ladder .chipL.clash{border-color:var(--bad);color:var(--bad)}
+  .ladderempty{font-size:12px;color:var(--dim);padding-top:9px}
+
+  dialog{background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:0}
+  dialog::backdrop{background:rgba(24,30,33,.42)}
+  #dlg{max-width:780px;width:92vw}
+  .dlghead{display:flex;justify-content:space-between;align-items:center;gap:10px;
+           padding:11px 14px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+  #exportOut{min-height:54vh;border:none;border-radius:0;font-family:var(--mono);font-size:12px}
+  #box{width:94vw;max-width:1500px;background:var(--lightbox);border-color:var(--edge)}
+  #boxImg{display:block;max-height:78vh;margin:0 auto}
+  .boxbar{display:flex;align-items:center;gap:10px;padding:8px 12px;background:#fff;border-bottom:1px solid var(--line)}
+  .boxbar .fname{color:var(--muted)}
+  @media (prefers-reduced-motion:reduce){*{transition:none !important}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">Review <b>Bench</b></div>
+  <select id="setPick" title="Evaluation set"></select>
+  <button class="btn ghost mini" id="newSet">New set</button>
+  <button class="btn ghost mini" id="renameSet">Rename</button>
+  <span class="count" id="saveState">starting</span>
+  <div class="spacer"></div>
+  <div class="hbtns">
+    <button class="btn" id="addBtn">Add completions</button>
+    <button class="btn ghost" id="clearBtn">Clear set</button>
+    <button class="btn" id="backupBtn" title="Download one file with all images, prompt, rubric and scores">Save backup</button>
+    <button class="btn" id="restoreBtn" title="Open a backup file you saved earlier">Load backup</button>
+    <button class="btn primary" id="exportBtn">Export</button>
+  </div>
+  <input type="file" id="file" accept="image/*" multiple hidden>
+  <input type="file" id="srcFile" accept="image/*" hidden>
+  <input type="file" id="moreFile" accept="image/*" multiple hidden>
+  <input type="file" id="backupFile" accept=".json,application/json" hidden>
+</header>
+
+<section class="task" id="task">
+  <div class="taskhead" id="taskHead">
+    <span class="caret" id="caret">&#9662;</span>
+    <span class="lbl">Task</span>
+    <span class="peek" id="peek">Original image, prompt and rubric</span>
+    <span class="lbl" id="foldHint">click to fold</span>
+  </div>
+  <div class="taskbody">
+    <span class="lbl">Original image</span>
+    <div class="srcslot" id="srcSlot" style="margin-top:6px"></div>
+    <div class="srcfoot">
+      <span class="fname" id="srcName"></span>
+      <button class="btn ghost mini" id="srcClear" style="display:none">Remove</button>
+    </div>
+    <div class="fields">
+      <div class="field">
+        <span class="lbl">Prompt</span>
+        <textarea id="prompt" placeholder="The prompt these completions were generated from."></textarea>
+      </div>
+      <div class="field">
+        <span class="lbl">Rubric</span>
+        <textarea id="rubric" placeholder="Task instructions, scoring definitions, anything the grader holds you to."></textarea>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="striphead">
+  <span class="lbl">Completions</span>
+  <span class="count" id="scrollHint"></span>
+</div>
+<div class="strip" id="strip"></div>
+
+<footer>
+  <div class="ftop">
+    <span class="lbl">Ranking ladder</span>
+    <span class="verdict" id="verdict">Awaiting scores</span>
+  </div>
+  <div id="ladderHost"><div class="ladderempty">Overall scores land here as you set them.</div></div>
+</footer>
+
+<dialog id="dlg">
+  <div class="dlghead">
+    <span class="lbl">Export</span>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn ghost" id="fmtMd">Markdown</button>
+      <button class="btn ghost" id="fmtJson">JSON</button>
+      <button class="btn" id="copyBtn">Copy</button>
+      <button class="btn" id="closeDlg">Close</button>
+    </div>
+  </div>
+  <textarea id="exportOut" spellcheck="false"></textarea>
+</dialog>
+
+<dialog id="box">
+  <div class="boxbar">
+    <button class="btn ghost mini" id="boxPrev">&#9664;</button>
+    <button class="btn ghost mini" id="boxNext">&#9654;</button>
+    <span class="fname" id="boxName"></span>
+    <button class="btn ghost mini" id="boxClose">Close</button>
+  </div>
+  <img id="boxImg" alt="">
+</dialog>
+<script>
+/* =========================================================
+   RUBRIC CONFIG - edit these strings to match your task.
+   ========================================================= */
+const SCALE = 7;
+const AXES = [
+  {
+    k:'instruction', name:'Instruction Following', short:'instruction',
+    def:'Did the completion fully follow the prompt\u2019s explicit and implicit requests without introducing conflicting changes? Penalise only where it conflicts with the user\u2019s intent; ignore neutral or helpful extras and judge those under consistency instead.',
+    help:'Briefly explain your score: which instructions were followed AND missed (cite key phrases).',
+    anchors:{
+      1:'Ignores the prompt, or does the opposite of what was asked.',
+      2:'Follows a fragment; most explicit requests are missed or contradicted.',
+      3:'Attempts to follow, but significant misinterpretations or omissions.',
+      4:'Partially follows: the main request lands, parts still conflict with intent.',
+      5:'Follows the explicit requests; some implicit intent is missed.',
+      6:'Follows explicit and implicit requests, with one small slip.',
+      7:'Fully follows every explicit and implicit request, nothing conflicting.'
+    }
+  },
+  {
+    k:'consistency', name:'Image Consistency', short:'consistency',
+    def:'Is everything the prompt did not ask to change left intact, and does the image hold together internally: anatomy, lighting direction, perspective, repeated elements?',
+    help:'Name the regions that drifted or contradict each other, and what stayed intact.',
+    anchors:{
+      1:'Unrecognisable against the source; effectively a replacement.',
+      2:'Severe drift: subject, layout or identity substantially changed.',
+      3:'Unintended changes to areas the prompt never mentioned.',
+      4:'Core preserved, but several regions altered or internally contradictory.',
+      5:'Mostly consistent; a few small unintended edits or lighting mismatches.',
+      6:'Consistent throughout, with one negligible trace of drift.',
+      7:'Everything outside the requested change is preserved exactly.'
+    }
+  },
+  {
+    k:'quality', name:'Image Quality', short:'quality',
+    def:'Craft, judged independently of the prompt: sharpness, exposure, colour, composition, artefacts, and the rendering of any text.',
+    help:'Point to the specific artefacts or craft decisions behind the number.',
+    anchors:{
+      1:'Broken output: heavy artefacts, mangled structure, unusable.',
+      2:'Severe quality faults dominate the frame.',
+      3:'Clear artefacts, soft focus or garbled text on ordinary viewing.',
+      4:'Serviceable, with visible flaws in craft or composition.',
+      5:'Solid craft; minor flaws only where you look for them.',
+      6:'Clean and well composed; nothing distracting.',
+      7:'Professional standard: sharp, well lit, well composed, artefact-free.'
+    }
+  },
+  {
+    k:'ainess', name:'AIness / Naturalness', short:'natural',
+    def:'How readily the image reads as machine-made. Score high when it looks naturally produced; score low when the usual generative tells are visible.',
+    help:'Name the tells, or say why none are visible.',
+    anchors:{
+      1:'Instantly reads as AI: classic tells everywhere.',
+      2:'Obvious machine origin at a glance.',
+      3:'Several visible tells: plastic texture, impossible detail, over-smooth surfaces.',
+      4:'Passes a glance, but tells surface on inspection.',
+      5:'Mostly natural; one or two subtle giveaways.',
+      6:'Reads as genuinely made; tells are hard to find.',
+      7:'Indistinguishable from a real photograph or a human-made asset.'
+    }
+  }
+];
+const OVERALL = {
+  name:'Overall', short:'overall',
+  def:'Your single judgement of the completion as a submission, weighing the axes as the task demands rather than averaging them.',
+  help:'Why this sits where it does relative to the other completions in the set.',
+  anchors:{
+    1:'Fails the task outright.',
+    2:'Poor: major failures on more than one axis.',
+    3:'Weak: usable only after substantial rework.',
+    4:'Middling: does the job with real shortcomings.',
+    5:'Good: succeeds with minor faults.',
+    6:'Strong: succeeds cleanly across the axes.',
+    7:'Excellent: nothing meaningful to fault.'
+  }
+};
+
+const LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+const $ = s => document.querySelector(s);
+const esc = s => (s||'').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+/* ---------- live state ---------- */
+let original = null;      // {name, mime, assetId, data}
+let items = [];           // {id, letter, imgs:[], active, scores, overall, notes, draft}
+let setId = null, setList = [], setTitle = 'Untitled set';
+let boxCtx = null, moreTarget = null;
+let db = null, assets = null, sampler = null, canWrite = true;
+const TAB = Math.random().toString(36).slice(2, 10);
+
+/* ---------- image refs ----------
+   Hosted: assetId, served from /_blob/<id>, survives everything.
+   Offline fallback: data (base64) kept in this browser only.        */
+const srcOf = g => g.assetId ? '/_blob/' + g.assetId
+              : g.data ? 'data:' + g.mime + ';base64,' + g.data : null;
+
+function readAsB64(file){
+  return new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload = () => res(r.result.split(',')[1]);
+    r.onerror = () => rej(new Error('read failed'));
+    r.readAsDataURL(file);
+  });
+}
+async function ingest(file){
+  const g = {name:file.name, mime:file.type, assetId:null, data:null};
+  if(assets){
+    try{
+      const up = await assets.upload(file);
+      g.assetId = up.id;
+      return g;
+    }catch(e){ note('upload failed: ' + (e.code || e.message), true); }
+  }
+  g.data = await readAsB64(file);
+  return g;
+}
+async function blobOf(g){
+  const u = srcOf(g); if(!u) return null;
+  try{ return await (await fetch(u)).blob(); }catch{ return null; }
+}
+const isImg = f => f && f.type && f.type.startsWith('image/');
+function note(msg, bad){
+  $('#saveState').textContent = msg;
+  $('#saveState').className = 'count ' + (bad ? 'bad' : 'ok');
+}
+
+/* ---------- serialise ---------- */
+function pack(){
+  const p = g => ({name:g.name, mime:g.mime, assetId:g.assetId || null, data:g.assetId ? null : (g.data || null)});
+  return {
+    title:setTitle, updatedAt:new Date().toISOString(), writer:TAB,
+    prompt:$('#prompt').value, rubric:$('#rubric').value,
+    original: original ? p(original) : null,
+    items: items.map(i => ({
+      imgs:i.imgs.map(p), active:i.active, scores:i.scores,
+      overall:i.overall, notes:i.notes, draft:i.draft
+    }))
+  };
+}
+function apply(s){
+  if(!s) return;
+  setTitle = s.title || 'Untitled set';
+  $('#prompt').value = s.prompt || '';
+  $('#rubric').value = s.rubric || '';
+  original = s.original || null;
+  items = (s.items || []).map(o => ({
+    id:crypto.randomUUID(), letter:'', imgs:o.imgs || [], active:o.active || 0,
+    scores:o.scores || {}, overall:(o.overall ?? null), notes:o.notes || {}, draft:o.draft || ''
+  }));
+  relabel(); renderSource(); renderStrip(); renderLadder(); renderSets();
+}
+function relabel(){ items.forEach((it,i) => it.letter = LETTERS[i] || 'Z' + (i-24)); }
+
+/* ---------- persistence ---------- */
+const LKEY = 'reviewbench.local.v2';        // old all-in-one copy (read only, for upgrades)
+const TKEY = 'reviewbench.text.v3';         // text-only safety copy: prompt, rubric, scores, notes
+let saveTimer = null, lastWritten = '';
+
+/* IndexedDB: large browser storage (hundreds of MB), holds images too */
+const IDB_NAME = 'reviewbench', IDB_STORE = 'kv';
+let idbConn = null;
+function idbOpen(){
+  if(idbConn) return Promise.resolve(idbConn);
+  return new Promise((res, rej) => {
+    if(!('indexedDB' in window)) return rej(new Error('no indexedDB'));
+    const r = indexedDB.open(IDB_NAME, 1);
+    r.onupgradeneeded = () => r.result.createObjectStore(IDB_STORE);
+    r.onsuccess = () => { idbConn = r.result; res(idbConn); };
+    r.onerror = () => rej(r.error || new Error('indexedDB blocked'));
+  });
+}
+async function idbPut(key, val){
+  const d = await idbOpen();
+  return new Promise((res, rej) => {
+    const tx = d.transaction(IDB_STORE, 'readwrite');
+    tx.objectStore(IDB_STORE).put(val, key);
+    tx.oncomplete = () => res();
+    tx.onerror = () => rej(tx.error); tx.onabort = () => rej(tx.error);
+  });
+}
+async function idbGet(key){
+  const d = await idbOpen();
+  return new Promise((res, rej) => {
+    const r = d.transaction(IDB_STORE, 'readonly').objectStore(IDB_STORE).get(key);
+    r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error);
+  });
+}
+function textOnly(body){
+  const strip = g => g ? {name:g.name, mime:g.mime, assetId:g.assetId || null, data:null} : null;
+  return {...body, original:strip(body.original),
+          items:body.items.map(i => ({...i, imgs:i.imgs.map(strip)}))};
+}
+function saveTextCopy(){
+  try{ localStorage.setItem(TKEY, JSON.stringify(textOnly(pack()))); return true; }catch{ return false; }
+}
+const hhmm = () => new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+
+function scheduleSave(){
+  clearTimeout(saveTimer);
+  $('#saveState').textContent = 'saving...';
+  $('#saveState').className = 'count';
+  if(!db) saveTextCopy();                     // text is safe instantly, even before images finish
+  saveTimer = setTimeout(save, 500);
+}
+async function save(){
+  const body = pack();
+  const json = JSON.stringify(body);
+  if(json === lastWritten) return;
+  if(db && setId && canWrite){
+    try{
+      await db.doc('sets/' + setId).set(body);
+      lastWritten = json;
+      note('saved ' + new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}));
+      return;
+    }catch(e){
+      if(e.code === 'invalid_argument'){ canWrite = false; note('read only view', true); return; }
+      note('save failed: ' + (e.code || 'unknown'), true);
+      return;
+    }
+  }
+  saveTimer = null;
+  const textOk = saveTextCopy();
+  try{
+    await idbPut('state', json);
+    lastWritten = json;
+    try{ localStorage.removeItem(LKEY); }catch{}   // old copy no longer needed
+    note('saved on this computer ' + hhmm());
+  }catch{
+    note(textOk ? 'text saved, images NOT saved: use Save backup' : 'could not save: use Save backup', true);
+  }
+}
+addEventListener('beforeunload', e => {
+  if(!saveTimer) return;
+  clearTimeout(saveTimer); saveTimer = null;
+  if(!db) saveTextCopy();
+  save();
+});
+
+/* ---------- sets ---------- */
+function renderSets(){
+  const sel = $('#setPick');
+  const rows = setList.length ? setList : [{id:setId, title:setTitle}];
+  sel.innerHTML = rows.map(r =>
+    `<option value="${esc(r.id)}" ${r.id===setId?'selected':''}>${esc(r.title || 'Untitled set')}</option>`).join('');
+  sel.style.display = db ? '' : 'none';
+  $('#newSet').style.display = db ? '' : 'none';
+  $('#renameSet').style.display = db ? '' : 'none';
+}
+async function loadSets(){
+  if(!db) return;
+  try{
+    const snap = await db.collection('sets').orderBy('updatedAt', 'desc').limit(60).get();
+    setList = snap.docs.map(d => ({id:d.id, title:(d.data().title || 'Untitled set')}));
+  }catch{ setList = []; }
+  renderSets();
+}
+let unsub = null;
+async function openSet(id){
+  if(unsub){ unsub(); unsub = null; }
+  setId = id;
+  try{ localStorage.setItem('reviewbench.lastset', id); }catch{}
+  const ref = db.doc('sets/' + id);
+  try{
+    const d = await ref.get();
+    if(d.exists){ apply(d.data()); lastWritten = JSON.stringify(pack()); }
+    else { apply({title:'Untitled set', items:[]}); }
+  }catch{ }
+  unsub = ref.onSnapshot(snap => {
+    if(!snap.exists) return;
+    const d = snap.data();
+    if(d.writer === TAB) return;                      // our own write coming back
+    const el = document.activeElement;
+    if(el && /TEXTAREA|INPUT/.test(el.tagName)) return; // never clobber live typing
+    apply(d);
+    note('updated by another editor');
+  }, () => {});
+  renderSets();
+}
+$('#setPick').onchange = e => openSet(e.target.value);
+$('#newSet').onclick = async () => {
+  if(!db) return;
+  const name = prompt('Name for the new set', 'Set ' + new Date().toLocaleDateString());
+  if(name === null) return;
+  const id = crypto.randomUUID().slice(0, 12);
+  setTitle = name || 'Untitled set';
+  original = null; items = [];
+  $('#prompt').value = ''; $('#rubric').value = '';
+  await db.doc('sets/' + id).set(pack());
+  await loadSets();
+  openSet(id);
+};
+$('#renameSet').onclick = async () => {
+  if(!db) return;
+  const name = prompt('Rename this set', setTitle);
+  if(!name) return;
+  setTitle = name; await save(); await loadSets();
+};
+
+/* ---------- task card ---------- */
+function renderSource(){
+  const u = original ? srcOf(original) : null;
+  $('#srcSlot').innerHTML = u
+    ? `<img src="${u}" alt="Original image">`
+    : original
+      ? `<div class="ph">${esc(original.name)}<br><small>image missing, click to re-add</small></div>`
+      : `<div class="ph">Click or drop the original image here<br>
+          <small>Optional. The source an edit, restoration or remake started from.</small></div>`;
+  $('#srcName').textContent = original ? original.name : '';
+  $('#srcClear').style.display = original ? '' : 'none';
+  renderPeek();
+}
+function renderPeek(){
+  const p = $('#prompt').value.trim();
+  $('#peek').textContent = p ? p.slice(0,120) + (p.length>120 ? '\u2026' : '')
+    : (original ? original.name : 'Original image, prompt and rubric');
+}
+$('#srcSlot').onclick = () => $('#srcFile').click();
+$('#srcFile').onchange = async e => {
+  const f = e.target.files[0]; e.target.value = '';
+  if(!isImg(f)) return;
+  note('uploading...');
+  original = await ingest(f);
+  renderSource(); scheduleSave();
+};
+$('#srcClear').onclick = e => { e.stopPropagation(); original = null; renderSource(); scheduleSave(); };
+['dragover','dragenter'].forEach(ev => $('#srcSlot').addEventListener(ev, e => {
+  e.preventDefault(); e.stopPropagation(); $('#srcSlot').classList.add('hot');
+}));
+['dragleave','drop'].forEach(ev => $('#srcSlot').addEventListener(ev, e => {
+  e.stopPropagation(); $('#srcSlot').classList.remove('hot');
+}));
+$('#srcSlot').addEventListener('drop', async e => {
+  e.preventDefault();
+  const f = e.dataTransfer.files[0];
+  if(!isImg(f)) return;
+  note('uploading...');
+  original = await ingest(f);
+  renderSource(); scheduleSave();
+});
+$('#taskHead').onclick = () => {
+  const folded = $('#task').classList.toggle('folded');
+  $('#caret').innerHTML = folded ? '&#9656;' : '&#9662;';
+  $('#foldHint').textContent = folded ? 'click to open' : 'click to fold';
+};
+$('#prompt').oninput = () => { renderPeek(); scheduleSave(); };
+$('#rubric').oninput = scheduleSave;
+
+/* ---------- completions ---------- */
+async function addCompletions(list){
+  const files = [...list].filter(isImg);
+  if(!files.length) return;
+  note('uploading ' + files.length + ' image' + (files.length>1?'s':'') + '...');
+  for(const f of files){
+    items.push({id:crypto.randomUUID(), letter:'', imgs:[await ingest(f)], active:0,
+                scores:{}, overall:null, notes:{}, draft:''});
+    relabel(); renderStrip();
+  }
+  renderLadder(); scheduleSave(); note('uploaded');
+}
+$('#addBtn').onclick = () => $('#file').click();
+$('#file').onchange = e => { addCompletions(e.target.files); e.target.value = ''; };
+$('#moreFile').onchange = async e => {
+  const it = items.find(i => i.id === moreTarget);
+  const files = [...e.target.files].filter(isImg); e.target.value = '';
+  if(!it || !files.length) return;
+  note('uploading...');
+  for(const f of files) it.imgs.push(await ingest(f));
+  renderStrip(); scheduleSave(); note('uploaded');
+};
+$('#clearBtn').onclick = () => {
+  if(items.length && !confirm('Remove all completions and scores from this set?')) return;
+  items = []; renderStrip(); renderLadder(); scheduleSave();
+};
+
+/* ---------- backup file: everything, images included ---------- */
+const blobToB64 = b => new Promise((res, rej) => {
+  const r = new FileReader();
+  r.onload = () => res(r.result.split(',')[1]);
+  r.onerror = () => rej(r.error);
+  r.readAsDataURL(b);
+});
+async function embed(g){
+  if(!g) return null;
+  if(g.data) return {name:g.name, mime:g.mime, assetId:null, data:g.data};
+  const b = await blobOf(g);
+  return {name:g.name, mime:g.mime || (b && b.type) || 'image/png', assetId:null, data:b ? await blobToB64(b) : null};
+}
+$('#backupBtn').onclick = async () => {
+  try{
+    note('preparing backup...');
+    const body = pack();
+    body.original = await embed(body.original);
+    for(const it of body.items) it.imgs = await Promise.all(it.imgs.map(embed));
+    body.kind = 'reviewbench-backup'; body.version = 3;
+    const blob = new Blob([JSON.stringify(body)], {type:'application/json'});
+    const safe = (setTitle || 'set').replace(/[^\w\-]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40) || 'set';
+    const stamp = new Date().toISOString().slice(0, 16).replace(/[:T]/g, '-');
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `review-bench-${safe}-${stamp}.json`;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+    const n = (body.original ? 1 : 0) + body.items.reduce((s, i) => s + i.imgs.length, 0);
+    note(`backup saved (${n} image${n === 1 ? '' : 's'})`);
+  }catch(e){ note('backup failed: ' + (e.message || 'unknown'), true); }
+};
+$('#restoreBtn').onclick = () => $('#backupFile').click();
+$('#backupFile').onchange = async e => {
+  const f = e.target.files[0]; e.target.value = '';
+  if(!f) return;
+  let s;
+  try{ s = JSON.parse(await f.text()); }catch{ note('that file is not a backup', true); return; }
+  if(!s || !Array.isArray(s.items)){ note('that file is not a backup', true); return; }
+  if((items.length || $('#prompt').value || original) &&
+     !confirm('Load this backup? It replaces what is on screen now.')) return;
+  note('loading backup...');
+  if(assets){   // hosted: move images into account storage instead of the database
+    const up = async g => {
+      if(!g || !g.data) return g;
+      try{
+        const bin = Uint8Array.from(atob(g.data), c => c.charCodeAt(0));
+        const r = await assets.upload(new File([bin], g.name || 'image', {type:g.mime || 'image/png'}));
+        return {name:g.name, mime:g.mime, assetId:r.id, data:null};
+      }catch{ return g; }
+    };
+    s.original = await up(s.original);
+    for(const it of s.items) it.imgs = await Promise.all(it.imgs.map(up));
+  }
+  apply(s); lastWritten = ''; scheduleSave(); note('backup loaded');
+};
+const strip = $('#strip');
+['dragover','dragenter'].forEach(ev => strip.addEventListener(ev, e => {
+  e.preventDefault(); strip.classList.add('hot');
+}));
+['dragleave','drop'].forEach(ev => strip.addEventListener(ev, () => strip.classList.remove('hot')));
+strip.addEventListener('drop', e => { e.preventDefault(); addCompletions(e.dataTransfer.files); });
+
+function renderCount(){
+  $('#scrollHint').textContent = items.length > 2 ? 'scroll sideways for the rest' : '';
+}
+function renderStrip(){
+  const x = strip.scrollLeft;
+  strip.innerHTML = '';
+  items.forEach(it => strip.appendChild(buildCol(it)));
+  const add = document.createElement('button');
+  add.className = 'addcol';
+  add.innerHTML = items.length
+    ? '+<br>Add another<br>completion'
+    : '+<br>Add completions<br><span style="font-size:11.5px;color:#8b959a">or drop image files here</span>';
+  add.onclick = () => $('#file').click();
+  strip.appendChild(add);
+  strip.scrollLeft = x;
+  renderCount();
+}
+
+function missing(it){
+  let n = 0;
+  AXES.forEach(a => { if(it.scores[a.k] == null) n++; if(!(it.notes[a.k]||'').trim()) n++; });
+  if(it.overall == null) n++;
+  if(!(it.notes.overall||'').trim()) n++;
+  return n;
+}
+function chipHTML(it){
+  const left = missing(it);
+  return AXES.map(a => `<span class="chip ${it.scores[a.k]!=null?'set':''}">${a.short}: ${it.scores[a.k] ?? '\u2013'}</span>`).join('')
+    + `<span class="chip ov ${it.overall!=null?'set':''}">overall: ${it.overall ?? '\u2013'}</span>`
+    + (left ? `<span class="badge">${left} left</span>` : `<span class="badge done">complete</span>`);
+}
+function refreshChips(col, it){ col.querySelector('.chips').innerHTML = chipHTML(it); }
+function refreshAvg(col, it){
+  const el = col.querySelector('.avg'); if(!el) return;
+  const vals = AXES.map(a => it.scores[a.k]).filter(v => v != null);
+  el.textContent = vals.length === AXES.length
+    ? 'axis mean ' + (vals.reduce((a,b)=>a+b,0)/vals.length).toFixed(2)
+    : vals.length + '/' + AXES.length + ' axes set';
+}
+const getScore = (it, k) => k === 'overall' ? it.overall : it.scores[k];
+function setScore(it, k, v){ if(k === 'overall') it.overall = v; else it.scores[k] = v; }
+
+function buildAxis(it, col, cfg, key){
+  const v = getScore(it, key);
+  const w = document.createElement('div');
+  w.className = 'ax' + (key === 'overall' ? ' ax-overall' : '');
+  w.innerHTML = `
+    <div class="axname">${cfg.name}</div>
+    <div class="axdef">${cfg.def}</div>
+    <span class="qlbl">What\u2019s your ${cfg.name} rating? <span class="req">*</span></span>
+    <div class="segs" role="group" aria-label="${cfg.name} rating"></div>
+    <div class="anchor"></div>
+    ${key === 'overall' ? '<span class="avg" style="display:block;margin-top:7px"></span>' : ''}
+    <span class="qlbl" style="margin-top:14px">[${cfg.name}] Brief justification <span class="req">*</span></span>
+    <textarea class="jbox" aria-label="${cfg.name} justification">${esc(it.notes[key]||'')}</textarea>
+    <div class="helper">${cfg.help}</div>`;
+  const segs = w.querySelector('.segs'), anchor = w.querySelector('.anchor');
+  const paint = n => anchor.innerHTML = n
+    ? `<b>${n}</b> \u2014 ${cfg.anchors[n]}`
+    : '<span style="color:#9aa3a6">Pick a rating to see its definition.</span>';
+  for(let n = 1; n <= SCALE; n++){
+    const b = document.createElement('button');
+    b.type = 'button'; b.textContent = n;
+    if(n === v){ b.className = 'on'; b.setAttribute('aria-pressed','true'); }
+    b.onclick = () => {
+      const next = getScore(it, key) === n ? null : n;
+      setScore(it, key, next);
+      [...segs.children].forEach((el,i) => {
+        el.classList.toggle('on', i+1 === next);
+        el.setAttribute('aria-pressed', String(i+1 === next));
+      });
+      paint(next); refreshChips(col, it); refreshAvg(col, it);
+      if(key === 'overall') renderLadder();
+      scheduleSave();
+    };
+    segs.appendChild(b);
+  }
+  paint(v);
+  w.querySelector('textarea').oninput = e => {
+    it.notes[key] = e.target.value; refreshChips(col, it); scheduleSave();
+  };
+  return w;
+}
+
+function buildCol(it){
+  const col = document.createElement('div');
+  col.className = 'col';
+  const img = it.imgs[it.active], u = img ? srcOf(img) : null;
+  col.innerHTML = `
+    <div class="colhead">
+      <span class="letter">${it.letter}</span>
+      <div class="chips">${chipHTML(it)}</div>
+      <button class="btn ghost mini rm" title="Remove this completion">&#10005;</button>
+    </div>
+    <div class="thumbs"></div>
+    <div class="colimg">
+      ${u ? `<img src="${u}" alt="Completion ${it.letter}">
+             ${it.imgs.length>1 ? `<span class="n">${it.active+1}/${it.imgs.length}</span>` : ''}`
+          : img ? `<span class="empty">${esc(img.name)}<br>image missing, re-add it</span>`
+                : '<span class="empty">no image</span>'}
+    </div>
+    <div class="score"></div>
+    <div class="colfoot">
+      <button class="btn draft">Draft observations</button>
+      <div class="draftout" style="${it.draft ? '' : 'display:none'}"></div>
+    </div>`;
+
+  const tb = col.querySelector('.thumbs');
+  it.imgs.forEach((g,i) => {
+    const b = document.createElement('button');
+    if(i === it.active) b.className = 'on';
+    b.title = g.name;
+    const gu = srcOf(g);
+    b.innerHTML = gu ? `<img src="${gu}" alt="">` : '<span class="addimg" style="color:#a9701a">!</span>';
+    b.onclick = () => { it.active = i; renderStrip(); scheduleSave(); };
+    tb.appendChild(b);
+  });
+  const plus = document.createElement('button');
+  plus.className = 'addimg'; plus.textContent = '+';
+  plus.title = 'Add another image to this completion';
+  plus.onclick = () => { moreTarget = it.id; $('#moreFile').click(); };
+  tb.appendChild(plus);
+
+  col.querySelector('.rm').onclick = () => {
+    items = items.filter(x => x.id !== it.id);
+    relabel(); renderStrip(); renderLadder(); scheduleSave();
+  };
+  if(u) col.querySelector('.colimg').onclick = () => openBox(it, it.active);
+
+  const sc = col.querySelector('.score');
+  const head = document.createElement('div');
+  head.innerHTML = `<div class="scorehead">Scorecard for ${it.letter}</div>
+    <div class="scoresub">Every field is required before this set can be submitted.</div>`;
+  sc.appendChild(head);
+  AXES.forEach(a => sc.appendChild(buildAxis(it, col, a, a.k)));
+  sc.appendChild(buildAxis(it, col, OVERALL, 'overall'));
+  refreshAvg(col, it);
+
+  const dbtn = col.querySelector('.draft'), dout = col.querySelector('.draftout');
+  dout.textContent = it.draft || '';
+  dbtn.onclick = () => drawDraft(it, dbtn, dout);
+  if(!sampler) dbtn.style.display = 'none';
+  return col;
+}
+
+/* ---------- lightbox ---------- */
+function openBox(it, idx){ boxCtx = {item:it, idx}; paintBox(); $('#box').showModal(); }
+function paintBox(){
+  const g = boxCtx.item.imgs[boxCtx.idx]; if(!g) return;
+  $('#boxImg').src = srcOf(g) || '';
+  $('#boxName').textContent = `${boxCtx.item.letter} \u00b7 ${g.name} \u00b7 ${boxCtx.idx+1}/${boxCtx.item.imgs.length}`;
+  const many = boxCtx.item.imgs.length > 1;
+  $('#boxPrev').style.display = many ? '' : 'none';
+  $('#boxNext').style.display = many ? '' : 'none';
+}
+$('#boxPrev').onclick = () => { const n = boxCtx.item.imgs.length; boxCtx.idx = (boxCtx.idx-1+n)%n; paintBox(); };
+$('#boxNext').onclick = () => { const n = boxCtx.item.imgs.length; boxCtx.idx = (boxCtx.idx+1)%n; paintBox(); };
+$('#boxClose').onclick = () => $('#box').close();
+$('#boxImg').onclick = () => $('#box').close();
+addEventListener('keydown', e => {
+  if(!$('#box').open) return;
+  if(e.key === 'ArrowLeft') $('#boxPrev').click();
+  if(e.key === 'ArrowRight') $('#boxNext').click();
+});
+
+/* ---------- drafting ---------- */
+async function drawDraft(it, btn, out){
+  if(!sampler){ return; }
+  btn.disabled = true; btn.textContent = 'Reading images...';
+  out.style.display = ''; out.textContent = 'Thinking...';
+  const blobs = [];
+  if(original){ const b = await blobOf(original); if(b) blobs.push(b); }
+  for(const g of it.imgs){ const b = await blobOf(g); if(b) blobs.push(b); }
+  const p = $('#prompt').value.trim(), rub = $('#rubric').value.trim();
+  const text =
+`You are helping a human rater evaluate one completion on a ${SCALE}-point rubric.
+${original ? 'The FIRST image is the ORIGINAL the task started from; the rest are the completion under review. Judge partly by what the completion preserved, changed or lost against the original.'
+           : 'The images are one completion under review.'}
+${it.imgs.length > 1 ? 'The completion has several images: treat them as one submission and note any inconsistency between them.' : ''}
+${p ? 'Prompt it was generated from:\n"""' + p + '"""' : 'No prompt was supplied. Judge on the images alone and say so.'}
+${rub ? '\nRubric the rater must apply:\n"""' + rub + '"""' : ''}
+
+Write terse observations under exactly these four headings, two or three sentences each. Point at specific regions. Do not assign numbers, do not rank, do not pad with praise.
+
+INSTRUCTION FOLLOWING - what the prompt asked for that is present, missing or contradicted.
+IMAGE CONSISTENCY - internal contradictions: anatomy, lighting direction, perspective, repeated or merged elements.
+IMAGE QUALITY - sharpness, composition, colour, artefacts, rendered text.
+AINESS / NATURALNESS - the specific tells that mark it machine-made, or their absence.`;
+  try{
+    const r = await sampler(text, {
+      images: blobs.length ? blobs : undefined,
+      modelTier: 'complex',
+      onText: ({text}) => { out.textContent = text; }
+    });
+    it.draft = r.text;
+  }catch(e){
+    it.draft = 'Could not draft: ' + (e.code || e.message || 'unknown');
+  }
+  out.textContent = it.draft;
+  btn.disabled = false; btn.textContent = 'Draft observations';
+  scheduleSave();
+}
+
+/* ---------- ladder and tie rule ---------- */
+function tieCheck(){
+  const scored = items.filter(i => i.overall != null);
+  const groups = {};
+  scored.forEach(i => (groups[i.overall] = groups[i.overall] || []).push(i.letter));
+  return {
+    scored, groups,
+    pairs: Object.entries(groups).filter(([,v]) => v.length === 2),
+    overs: Object.entries(groups).filter(([,v]) => v.length > 2),
+    unscored: items.length - scored.length
+  };
+}
+const pct = s => { const f = (s-1)/(SCALE-1); return `calc(${f*100}% + ${(1-f)*30 - 15}px)`; };
+
+function renderLadder(){
+  const host = $('#ladderHost'), v = $('#verdict');
+  const {scored, groups, pairs, overs, unscored} = tieCheck();
+  if(!scored.length){
+    host.innerHTML = '<div class="ladderempty">Overall scores land here as you set them.</div>';
+    v.textContent = 'Awaiting scores'; v.className = 'verdict'; return;
+  }
+  if(overs.length){
+    v.textContent = overs.length + ' score' + (overs.length>1?'s':'') + ' shared by three or more, break them apart';
+    v.className = 'verdict bad';
+  } else if(pairs.length > 1){
+    v.textContent = pairs.length + ' tied pairs, only one is allowed';
+    v.className = 'verdict bad';
+  } else if(unscored){
+    v.textContent = unscored + ' still unscored \u00b7 ' + (pairs.length ? 'one tied pair' : 'no ties');
+    v.className = 'verdict warn';
+  } else {
+    v.textContent = pairs.length ? 'Valid \u00b7 one tied pair (' + pairs[0][1].join(' = ') + ')'
+                                 : 'Valid \u00b7 all scores unique';
+    v.className = 'verdict ok';
+  }
+  const l = document.createElement('div');
+  l.className = 'ladder';
+  l.innerHTML = '<div class="axis"></div>';
+  for(let s = 1; s <= SCALE; s++){
+    const t = document.createElement('div');
+    t.className = 'tick'; t.style.left = pct(s); t.textContent = s;
+    l.appendChild(t);
+  }
+  Object.entries(groups).forEach(([score, letters]) => {
+    const bad = letters.length > 2 || (letters.length === 2 && pairs.length > 1);
+    const c = document.createElement('button');
+    c.className = 'chipL' + (bad ? ' clash' : letters.length === 2 ? ' tie' : '');
+    c.style.left = pct(+score); c.textContent = letters.join('=');
+    c.title = 'Score ' + score;
+    c.onclick = () => {
+      const i = items.findIndex(x => x.letter === letters[0]);
+      strip.children[i] && strip.children[i].scrollIntoView({behavior:'smooth', inline:'center', block:'nearest'});
+    };
+    l.appendChild(c);
+  });
+  host.innerHTML = ''; host.appendChild(l);
+}
+
+/* ---------- export ---------- */
+let fmt = 'md';
+$('#exportBtn').onclick = () => { if(items.length){ fill(); $('#dlg').showModal(); } };
+$('#closeDlg').onclick = () => $('#dlg').close();
+$('#fmtMd').onclick = () => { fmt = 'md'; fill(); };
+$('#fmtJson').onclick = () => { fmt = 'json'; fill(); };
+$('#copyBtn').onclick = async () => {
+  const t = $('#exportOut'); t.select();
+  try{ await navigator.clipboard.writeText(t.value); }catch{ document.execCommand('copy'); }
+  $('#copyBtn').textContent = 'Copied';
+  setTimeout(() => $('#copyBtn').textContent = 'Copy', 1400);
+};
+function fill(){
+  const p = $('#prompt').value.trim(), rub = $('#rubric').value.trim();
+  const ranked = [...items].sort((a,b) => (b.overall ?? -1) - (a.overall ?? -1));
+  if(fmt === 'json'){
+    $('#exportOut').value = JSON.stringify({
+      set:setTitle, prompt:p, rubric:rub, scale:'1-' + SCALE,
+      original_image: original ? original.name : null,
+      ranking: ranked.filter(i => i.overall != null).map(i => i.letter),
+      completions: items.map(i => ({
+        label:i.letter, images:i.imgs.map(g => g.name),
+        axes: Object.fromEntries(AXES.map(a => [a.short, {score:i.scores[a.k] ?? null, justification:i.notes[a.k] || ''}])),
+        overall: {score:i.overall, justification:i.notes.overall || ''}
+      }))
+    }, null, 2);
+    return;
+  }
+  const {pairs} = tieCheck();
+  let out = '# ' + setTitle + '\n\n';
+  out += original ? '**Original image:** ' + original.name + '\n\n' : '';
+  out += p ? '**Prompt:** ' + p + '\n\n' : '';
+  out += rub ? '**Rubric:**\n\n' + rub + '\n\n' : '';
+  out += '**Ranking:** ' + (ranked.filter(i => i.overall != null).map(i => i.letter).join(' > ') || '\u2014') + '\n';
+  out += pairs.length ? '**Tie:** ' + pairs[0][1].join(' = ') + ' at ' + pairs[0][0] + '\n\n' : '**Tie:** none\n\n';
+  items.forEach(i => {
+    out += '### ' + i.letter + ' \u2014 overall ' + (i.overall ?? '\u2013') + '/' + SCALE;
+    out += i.imgs.length > 1 ? ' _(' + i.imgs.length + ' images)_\n\n' : '\n\n';
+    AXES.forEach(a => {
+      out += '**' + a.name + ': ' + (i.scores[a.k] ?? '\u2013') + '/' + SCALE + '**\n';
+      out += (i.notes[a.k] ? i.notes[a.k].trim() : '_no justification_') + '\n\n';
+    });
+    out += '**Overall: ' + (i.overall ?? '\u2013') + '/' + SCALE + '**\n';
+    out += (i.notes.overall ? i.notes.overall.trim() : '_no justification_') + '\n\n';
+  });
+  $('#exportOut').value = out.trim();
+}
+
+/* ---------- boot ---------- */
+renderSource(); renderStrip(); renderLadder(); renderSets();
+
+async function loadLocal(){
+  try{ if(navigator.storage && navigator.storage.persist) await navigator.storage.persist(); }catch{}
+  let full = null, text = null, old = null;
+  try{ full = await idbGet('state'); }catch{}
+  try{ text = localStorage.getItem(TKEY); }catch{}
+  try{ old = localStorage.getItem(LKEY); }catch{}
+  const t = s => { try{ return s ? (JSON.parse(s).updatedAt || '') : ''; }catch{ return ''; } };
+  try{
+    if(full && t(full) >= t(text)){
+      apply(JSON.parse(full)); lastWritten = full; note('restored on this computer');
+    }else if(full && text){
+      // text copy is newer (tab closed before images finished saving): newer text + saved images
+      const f = JSON.parse(full), x = JSON.parse(text);
+      const byName = new Map();
+      [f.original, ...f.items.flatMap(i => i.imgs)].forEach(g => g && g.data && byName.set(g.name + '|' + g.mime, g.data));
+      const fill = g => g && !g.data && byName.has(g.name + '|' + g.mime) ? {...g, data:byName.get(g.name + '|' + g.mime)} : g;
+      x.original = fill(x.original); x.items.forEach(i => i.imgs = i.imgs.map(fill));
+      apply(x); scheduleSave(); note('restored on this computer');
+    }else if(old){
+      apply(JSON.parse(old)); scheduleSave(); note('restored, upgraded storage');
+    }else if(text){
+      apply(JSON.parse(text)); note('restored text (images missing)', true);
+    }else{
+      note('saves on this computer');
+    }
+  }catch{ note('could not restore', true); }
+  renderStrip();
+}
+
+(async () => {
+  if(!window.claude || !window.claude.use){ await loadLocal(); return; }
+  const [d, a, s, u] = await Promise.all([
+    claude.use('db').catch(() => null),
+    claude.use('assets').catch(() => null),
+    claude.use('sample').catch(() => null),
+    claude.use('user').catch(() => null)
+  ]);
+  db = d; assets = a; sampler = s;
+  if(u){
+    const w = await u.can('data.write').catch(() => null);
+    if(w === false) canWrite = false;
+  }
+  if(!db){ await loadLocal(); return; }
+  await loadSets();
+  let want = null;
+  try{ want = localStorage.getItem('reviewbench.lastset'); }catch{}
+  if(want && !setList.some(r => r.id === want)) want = null;
+  if(!want && setList.length) want = setList[0].id;
+  if(!want){
+    want = crypto.randomUUID().slice(0, 12);
+    setTitle = 'First set';
+    await db.doc('sets/' + want).set(pack());
+    await loadSets();
+  }
+  await openSet(want);
+  note(canWrite ? 'synced' : 'read only view', !canWrite);
+  renderStrip();
+})();
+</script>
+</body>
+</html>
